@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Urine Strip Color Identification</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+        }
+
+        header {
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            padding: 20px;
+        }
+
+        main {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        form {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        button[type="submit"] {
+            background-color: #333;
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+        }
+
+        button[type="submit"]:hover {
+            background-color: #555;
+        }
+
+        .color-results {
+            text-align: center;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Urine Strip Color Identification</h1>
+    </header>
+    <main>
+        <form id="urineStripForm" enctype="multipart/form-data">
+           
+            <input type="file" id="urineStripImage" name="image" accept="image/*" required style="display: none;">
+          
+            <button type="button" id="addFileButton">Add File</button>
+         
+            <div id="selectedFileName"></div>
+            <button type="submit">Identify Colors</button>
+        </form>
+        
+        <div id="colorResults" class="color-results">
+        
+        </div>
+    </main>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const urineStripForm = document.getElementById('urineStripForm');
+            const urineStripImage = document.getElementById('urineStripImage');
+            const colorResults = document.getElementById('colorResults');
+            const addFileButton = document.getElementById('addFileButton');
+            const selectedFileName = document.getElementById('selectedFileName');
+
+           
+            addFileButton.addEventListener('click', () => {
+                urineStripImage.click();
+            });
+
+            urineStripImage.addEventListener('change', () => {
+                const file = urineStripImage.files[0];
+                if (file) {
+                    selectedFileName.textContent = `Selected File: ${file.name}`;
+                } else {
+                    selectedFileName.textContent = '';
+                }
+            });
+
+            urineStripForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                
+                if (!urineStripImage.files[0]) {
+                    displayError('Please select an image file.');
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('image', urineStripImage.files[0]);
+
+                try {
+                    const response = await fetch('/api/process_urinestrip/', {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        displayColorResults(data.color_info);
+                    } else {
+                        throw new Error('Error processing urine strip.');
+                    }
+                } catch (error) {
+                    console.error(error);
+                    displayError('Error processing urine strip.');
+                }
+            });
+
+            function displayColorResults(colors) {
+                if (colors.length === 0) {
+                    colorResults.textContent = 'No colors identified.';
+                    return;
+                }
+
+                colorResults.innerHTML = 'Identified Colors:<br>';
+                colors.forEach((color, index) => {
+                    colorResults.innerHTML += `Color ${index + 1}: RGB(${color.r}, ${color.g}, ${color.b})<br>`;
+                });
+            }
+
+            function displayError(errorMessage) {
+                colorResults.textContent = errorMessage;
+            }
+        });
+    </script>
+</body>
+</html>
